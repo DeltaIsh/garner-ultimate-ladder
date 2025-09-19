@@ -5,7 +5,15 @@ from elo_core import EloEngine, GameRow, make_standings_table
 from gsheets_backend import read_sheet_as_df, write_dataframe, append_row, delete_last_row
 import io, math, os
 
-st.write("✅ App started — secrets loaded")
+import json
+try:
+    sa_json = st.secrets["GSPREAD_SERVICE_ACCOUNT_JSON"]
+    st.text(f"First 100 chars of SA JSON:\n{sa_json[:100]}")
+    json.loads(sa_json)  # try parsing
+    st.success("✅ JSON parsed successfully")
+except Exception as e:
+    st.error(f"❌ JSON parse failed: {e}")
+
 
 st.set_page_config(page_title="Garner Ultimate Ladder", layout="wide")
 st.title("Garner Ultimate Ladder — Google Sheets Edition (v3 + Undo)")
