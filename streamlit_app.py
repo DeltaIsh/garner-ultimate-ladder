@@ -105,31 +105,37 @@ baseline = load_standings_baseline()
 
 alias_map = {row["alias"].strip().lower(): row["canonical"].strip() for _, row in aliases_df.iterrows()}
 
+# ---- Name cleaning ----
+def clean_name(name: str) -> str:
+    """Strip leading/trailing spaces and collapse multiple spaces into one."""
+    return " ".join(name.strip().split())
+
 def resolve_team(raw: str, roster: List[str], alias_map: Dict[str,str]) -> List[str]:
-    chunks = [x.strip() for x in str(raw).split(";") if x.strip()]
+    chunks = [clean_name(x) for x in str(raw).split(";") if x.strip()]
     out = []
     lowers = {p.lower(): p for p in roster}
     for tok in chunks:
-        t = tok.strip()
+        t = clean_name(tok)
         if t.lower() in alias_map:
             out.append(alias_map[t.lower()]); continue
         if t.lower() in lowers:
             out.append(lowers[t.lower()]); continue
+        # fallback matching
         parts = t.split()
         first = parts[0].lower()
         initial = parts[1][0].lower() if len(parts)>1 and parts[1] else None
         cands = [p for p in roster if p.lower().split()[0] == first]
         if initial:
-            cands = [p for p in cands if any(seg.lower().startswith(initial) for seg in p.lower().split()[1:]) ]
+            cands = [p for p in cands if any(seg.lower().startswith(initial) for seg in p.lower().split()[1:])]
         if len(cands)==1:
             out.append(cands[0]); continue
         out.append(t)
     return out
 
-# Roster inferred from games + baseline
+# ---- Roster ----
 roster = sorted(set(
     list(baseline.keys()) +
-    [n for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")]
+    [clean_name(n) for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")]
 ))
 
 def build_games(df: pd.DataFrame) -> List[GameRow]:
@@ -137,15 +143,15 @@ def build_games(df: pd.DataFrame) -> List[GameRow]:
     for _, r in df.iterrows():
         rows.append(GameRow(
             date=str(r["date"]),
-            winners=str(r["winners"]).split(";"),
-            losers=str(r["losers"]).split(";"),
+            winners=[clean_name(x) for x in str(r["winners"]).split(";") if x],
+            losers=[clean_name(x) for x in str(r["losers"]).split(";") if x],
             score_w=int(r["score_w"]),
             score_l=int(r["score_l"]),
             _seq=int(r["game_id"]),
         ))
     return rows
 
-# Session state for Undo
+# ---- Session state for Undo ----
 if "last_added" not in st.session_state:
     st.session_state.last_added = False
 
@@ -220,14 +226,14 @@ with tabs[2]:
 # ===== Pair Filter =====
 with tabs[3]:
     st.subheader("Pair Filter")
-    roster_pf = sorted(set([n for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")]))
+    roster_pf = sorted(set([clean_name(n) for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")]))
     if not roster_pf:
         st.info("No players found yet.")
     else:
         p1 = st.selectbox("Player 1", roster_pf)
         p2 = st.selectbox("Player 2", [x for x in roster_pf if x != p1] or [p1])
         def set_from(s: str) -> Set[str]:
-            return set([x for x in str(s).split(";") if x])
+            return set([clean_name(x) for x in str(s).split(";") if x])
         together = games_df[games_df.apply(lambda r: (p1 in set_from(r["winners"]) and p2 in set_from(r["winners"])) or (p1 in set_from(r["losers"]) and p2 in set_from(r["losers"])), axis=1)]
         vs = games_df[games_df.apply(lambda r: (p1 in set_from(r["winners"]) and p2 in set_from(r["losers"])) or (p2 in set_from(r["winners"]) and p1 in set_from(r["losers"])), axis=1)]
         st.markdown(f"**Together:** {len(together)} games")
