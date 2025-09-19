@@ -127,7 +127,10 @@ def resolve_team(raw: str, roster: List[str], alias_map: Dict[str,str]) -> List[
     return out
 
 # Roster inferred from games + baseline
-roster = sorted(set(list(baseline.keys()) + [n for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")])))
+roster = sorted(set(
+    list(baseline.keys()) +
+    [n for col in ["winners","losers"] for names in games_df[col] for n in str(names).split(";")]
+))
 
 def build_games(df: pd.DataFrame) -> List[GameRow]:
     rows = []
