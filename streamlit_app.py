@@ -5,14 +5,16 @@ from elo_core import EloEngine, GameRow, make_standings_table
 from gsheets_backend import read_sheet_as_df, write_dataframe, append_row, delete_last_row
 import io, math, os
 
-import json
+import json, textwrap
+sa_json = st.secrets.get("GSPREAD_SERVICE_ACCOUNT_JSON", "")
 try:
-    sa_json = st.secrets["GSPREAD_SERVICE_ACCOUNT_JSON"]
-    st.text(f"First 100 chars of SA JSON:\n{sa_json[:100]}")
-    json.loads(sa_json)  # try parsing
-    st.success("✅ JSON parsed successfully")
+    parsed = json.loads(sa_json)
+    st.success("✅ JSON parsed successfully!")
+    st.json(parsed)  # show the parsed dict
 except Exception as e:
     st.error(f"❌ JSON parse failed: {e}")
+    st.code(textwrap.shorten(sa_json, 200))  # show preview
+
 
 
 st.set_page_config(page_title="Garner Ultimate Ladder", layout="wide")
