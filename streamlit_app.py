@@ -29,12 +29,13 @@ if not SHEET_ID:
 
 try:
     sh = gc.open_by_key(SHEET_ID)
+    st.success(f"✅ Opened spreadsheet: {sh.title}")
+    st.write("Worksheets:", [ws.title for ws in sh.worksheets()])
     ws = sh.sheet1
     data = ws.get_all_records()
-    st.success(f"✅ Successfully opened sheet: {sh.title}")
-    if data:
-        st.write("First few rows from sheet1:", data[:5])
-    else:
-        st.info("Sheet is empty or has no headers yet.")
+    st.write("First few rows from sheet1:", data[:5])
 except Exception as e:
-    st.error(f"❌ Failed to open sheet: {e}")
+    import traceback
+    st.error("❌ Failed to open sheet")
+    st.code(traceback.format_exc())
+
